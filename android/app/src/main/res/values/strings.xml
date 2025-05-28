@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">huni_sidlak</string>
+    <string name="title_activity_main">huni_sidlak</string>
+    <string name="package_name">com.hunisidlak.app</string>
+    <string name="custom_url_scheme">com.hunisidlak.app</string>
+</resources>
