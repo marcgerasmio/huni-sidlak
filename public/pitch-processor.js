@@ -1,21 +1,21 @@
+// pitch-processor.js
 class PitchProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
-    this._buffer = [];
-    this._bufferSize = 2048;
+    this.buffer = new Float32Array(2048);
+    this.bufferIndex = 0;
   }
 
   process(inputs) {
-    const input = inputs[0][0];
-    if (input) {
-      // Add new samples to buffer
-      this._buffer.push(...input);
-
-      // While we have enough samples, send 2048 at a time
-      while (this._buffer.length >= this._bufferSize) {
-        const chunk = this._buffer.slice(0, this._bufferSize);
-        this.port.postMessage(chunk);
-        this._buffer = this._buffer.slice(this._bufferSize);
+    const input = inputs[0];
+    if (input && input[0]) {
+      const channelData = input[0];
+      for (let i = 0; i < channelData.length; i++) {
+        this.buffer[this.bufferIndex++] = channelData[i];
+        if (this.bufferIndex === this.buffer.length) {
+          this.port.postMessage(this.buffer);
+          this.bufferIndex = 0;
+        }
       }
     }
     return true;

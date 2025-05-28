@@ -1,437 +1,214 @@
-import { useState, useEffect, useRef } from 'react';
-import { Camera, ZoomIn } from 'lucide-react';
+"use client"
 
-export default function ChordDetector() {
-  const [isDetecting, setIsDetecting] = useState(false);
-  const [detectedChord, setDetectedChord] = useState('');
-  const [confidence, setConfidence] = useState(0);
-  const [debugImage, setDebugImage] = useState(null);
-  const [showDebug, setShowDebug] = useState(false);
-  const [cameraError, setCameraError] = useState('');
-  const [availableCameras, setAvailableCameras] = useState([]);
-  const [selectedCamera, setSelectedCamera] = useState('');
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-  const streamRef = useRef(null);
-  const frameIntervalRef = useRef(null);
-  const [isVideoReady, setIsVideoReady] = useState(false);
+import { useEffect, useRef, useState } from "react"
+import { Client } from "@gradio/client"
+import BottomNav from "./BottomNav"
 
-  // Initialize canvas element
+const YOLOVideoCapture = () => {
+  const videoRef = useRef(null)
+  const canvasRef = useRef(null)
+  const [result, setResult] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [connected, setConnected] = useState(false)
+  const [error, setError] = useState(null)
+  const clientRef = useRef(null)
+
   useEffect(() => {
-    if (!canvasRef.current) {
-      console.log('Creating canvas element...');
-      const canvas = document.createElement('canvas');
-      canvas.style.display = 'none'; // Hide the canvas element
-      document.body.appendChild(canvas);
-      canvasRef.current = canvas;
-    }
-
-    // Cleanup function
-    return () => {
-      if (canvasRef.current) {
-        document.body.removeChild(canvasRef.current);
-        canvasRef.current = null;
-      }
-    };
-  }, []);
-
-  // Check available cameras on component mount
-  useEffect(() => {
-    const checkCameras = async () => {
+    const startVideo = async () => {
       try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(device => device.kind === 'videoinput');
-        console.log('Available cameras:', videoDevices);
-        setAvailableCameras(videoDevices);
-        if (videoDevices.length > 0) {
-          setSelectedCamera(videoDevices[0].deviceId);
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
         }
+        setError(null)
       } catch (err) {
-        console.error('Error checking cameras:', err);
-        setCameraError('Could not enumerate cameras: ' + err.message);
+        console.error("Error accessing webcam:", err)
+        setError("Unable to access camera. Please check permissions.")
       }
-    };
-    checkCameras();
-  }, []);
-
-  // Handle video element mount
-  const handleVideoRef = (element) => {
-    videoRef.current = element;
-    if (element && streamRef.current) {
-      element.srcObject = streamRef.current;
-      element.onloadedmetadata = () => {
-        element.play()
-          .then(() => {
-            console.log('Video playback started successfully');
-            setIsVideoReady(true);
-            startFrameCapture();
-          })
-          .catch(playError => {
-            console.error('Error starting video playback:', playError);
-            setCameraError('Error starting video: ' + playError.message);
-          });
-      };
     }
-  };
 
-  const startDetection = async () => {
-    try {
-      console.log('Starting camera detection...');
-      stopDetection(); // Stop any existing stream first
-      
-      // Configure camera constraints
-      let constraints = {
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        },
-        audio: false
-      };
-      
-      // Use selected camera if available
-      if (selectedCamera) {
-        constraints.video.deviceId = { exact: selectedCamera };
-      } else {
-        // Try to use back camera as fallback
-        constraints.video.facingMode = { ideal: 'environment' };
-      }
+    startVideo()
+  }, [])
 
-      console.log('Attempting to access camera with constraints:', constraints);
-      let stream;
-      
+  useEffect(() => {
+    let isMounted = true
+
+    const connectClientAndStartLoop = async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
-        console.log('Successfully accessed camera');
-      } catch (cameraError) {
-        console.error('Specific camera access failed:', cameraError);
-        
-        // Fall back to any available camera
-        console.log('Trying fallback with simple constraints...');
-        constraints = { video: true, audio: false };
-        
-        try {
-          stream = await navigator.mediaDevices.getUserMedia(constraints);
-          console.log('Successfully accessed camera with fallback constraints');
-        } catch (fallbackError) {
-          console.error('All camera access attempts failed:', fallbackError);
-          throw fallbackError;
-        }
-      }
+        setLoading(true)
+        clientRef.current = await Client.connect("ThesisGuitar/yolov8")
+        console.log("Connected to YOLOv8")
+        setConnected(true)
+        setError(null)
 
-      // Store the stream reference for later cleanup
-      streamRef.current = stream;
-      setIsVideoReady(false);
-      setIsDetecting(true);
-      setCameraError('');
-      
-    } catch (err) {
-      console.error("Error accessing camera:", err);
-      let errorMessage = "Camera access denied";
-      
-      if (err.name === 'NotReadableError') {
-        errorMessage = "Camera is in use by another application. Please close other applications using the camera.";
-      } else if (err.name === 'NotFoundError') {
-        errorMessage = "No camera found. Please connect a camera and try again.";
-      } else if (err.name === 'NotAllowedError') {
-        errorMessage = "Camera access was denied. Please allow camera access in your browser settings.";
-      } else if (err.name === 'OverconstrainedError') {
-        errorMessage = "Camera does not support the requested resolution. Trying with default settings...";
-      }
-      
-      setCameraError(errorMessage);
-      setDetectedChord('');
-      stopDetection();
-    }
-  };
+        const captureAndPredict = async () => {
+          if (!isMounted || !videoRef.current || !canvasRef.current) return
 
-  const stopDetection = () => {
-    if (frameIntervalRef.current) {
-      clearInterval(frameIntervalRef.current);
-      frameIntervalRef.current = null;
-    }
+          const ctx = canvasRef.current.getContext("2d")
+          const video = videoRef.current
 
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => {
-        track.stop();
-        console.log('Track stopped:', track.label);
-      });
-      streamRef.current = null;
-    }
-
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-      videoRef.current.pause();
-    }
-
-    setIsDetecting(false);
-    setDetectedChord('');
-    setConfidence(0);
-    setDebugImage(null);
-  };
-
-  const startFrameCapture = () => {
-    if (!videoRef.current || !canvasRef.current) {
-      console.error('Video or canvas reference not found');
-      return;
-    }
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-
-    // Ensure we're capturing frames only after video is ready
-    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
-      console.log('Video not ready yet, waiting for data...');
-      
-      // Wait for video to be ready
-      const checkVideoReady = () => {
-        if (video.readyState === video.HAVE_ENOUGH_DATA) {
-          console.log('Video ready, starting frame capture');
-          startActualFrameCapture();
-        } else {
-          setTimeout(checkVideoReady, 100);
-        }
-      };
-      
-      checkVideoReady();
-      return;
-    }
-    
-    startActualFrameCapture();
-    
-    function startActualFrameCapture() {
-      // Clear any existing interval
-      if (frameIntervalRef.current) {
-        clearInterval(frameIntervalRef.current);
-      }
-
-      let isProcessing = false; // Flag to prevent overlapping requests
-      let lastProcessedTime = 0;
-      const MIN_INTERVAL = 100; // Minimum time between processing frames (ms)
-
-      frameIntervalRef.current = setInterval(async () => {
-        const now = Date.now();
-        
-        // Skip if we're still processing the previous frame or if not enough time has passed
-        if (isProcessing || (now - lastProcessedTime) < MIN_INTERVAL) {
-          return;
-        }
-
-        try {
-          isProcessing = true;
-          lastProcessedTime = now;
-
-          if (video.readyState === video.HAVE_ENOUGH_DATA) {
-            console.log('Capturing frame...');
-            
-            // Set canvas dimensions to match video
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            
-            // Draw the current video frame to the canvas
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            console.log(`Frame captured. Dimensions: ${canvas.width}x${canvas.height}`);
-            
-            // Convert canvas to blob
-            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
-            console.log('Frame converted to blob:', blob.size, 'bytes');
-            
-            // Create form data
-            const formData = new FormData();
-            formData.append('file', blob, 'frame.jpg');
-
-            console.log('Sending frame to backend...');
-            // Send frame to backend
-            const response = await fetch('http://localhost:8000/process-frame', {
-              method: 'POST',
-              body: formData,
-            });
-
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            console.log('Received response from backend:', data);
-            
-            if (data.error) {
-              console.error('Backend error:', data.error);
-              setDetectedChord('Error: ' + data.error);
-              return;
-            }
-            
-            if (data.chord) {
-              console.log('Setting new chord:', data.chord, 'with confidence:', data.confidence);
-              setDetectedChord(data.chord);
-              setConfidence(data.confidence || 0);
-              if (data.debug_image) {
-                setDebugImage(data.debug_image);
-              }
-            } else {
-              console.log('No chord detected in response');
-            }
-          } else {
-            console.log('Video not ready, current state:', video.readyState);
+          if (!ctx || video.videoWidth === 0 || video.videoHeight === 0) {
+            setTimeout(captureAndPredict, 1000)
+            return
           }
-        } catch (error) {
-          console.error('Error processing frame:', error);
-          setDetectedChord('Error: ' + error.message);
-        } finally {
-          isProcessing = false;
+
+          canvasRef.current.width = video.videoWidth
+          canvasRef.current.height = video.videoHeight
+          ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight)
+
+          canvasRef.current.toBlob(async (blob) => {
+            if (blob && clientRef.current) {
+              setLoading(true)
+              try {
+                const result = await clientRef.current.predict("/predict", { image: blob })
+                console.log("Prediction result:", result.data)
+                setResult(result.data)
+                setError(null)
+              } catch (err) {
+                console.error("Prediction error:", err)
+                setError("Prediction failed. Retrying...")
+              } finally {
+                setLoading(false)
+              }
+            }
+            if (isMounted) {
+              setTimeout(captureAndPredict, 7000)
+            }
+          }, "image/png")
         }
-      }, 50); // Check every 50ms, but process at most every 100ms
-    }
-  };
 
-  // Add a cleanup effect for the frame capture
-  useEffect(() => {
-    return () => {
-      if (frameIntervalRef.current) {
-        clearInterval(frameIntervalRef.current);
-        frameIntervalRef.current = null;
+        setLoading(false)
+        captureAndPredict()
+      } catch (err) {
+        console.error("Error connecting to Gradio client:", err)
+        setError("Failed to connect to AI model. Please refresh the page.")
+        setLoading(false)
       }
-    };
-  }, []);
+    }
 
-  // Handle camera selection change
-  const handleCameraChange = (e) => {
-    setSelectedCamera(e.target.value);
-  };
+    connectClientAndStartLoop()
 
-  // Cleanup on component unmount
-  useEffect(() => {
     return () => {
-      stopDetection();
-    };
-  }, []);
+      isMounted = false
+    }
+  }, [])
+
+  const getChordFromResult = (result) => {
+    if (!result || !result[0]) return null
+    try {
+      const data = result[0]
+      if (data.label) {
+        return data.label
+      }
+      return null
+    } catch (err) {
+      return null
+    }
+  }
+
+  const detectedChord = getChordFromResult(result)
 
   return (
-    <div className="flex flex-col items-center w-full max-w-2xl mx-auto bg-gray-100 p-4 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4 text-blue-700">Guitar Chord Detector</h2>
-
-      <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden mb-4">
-        {isDetecting ? (
-          <video
-            ref={handleVideoRef}
-            className="w-full h-full object-cover"
-            autoPlay
-            playsInline
-            muted
-            style={{ transform: 'scaleX(-1)' }} // Mirror the video for selfie view
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Camera size={64} className="text-gray-400" />
-            <p className="text-gray-400 ml-2">Camera feed will appear here</p>
-          </div>
-        )}
-      </div>
-
-      {cameraError && (
-        <div className="w-full mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-          {cameraError}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 text-gray-900">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
+            Chord Detector
+          </h1>
         </div>
-      )}
 
-      {availableCameras.length > 0 && (
-        <div className="w-full mb-4">
-          <label className="block mb-2 text-sm font-medium text-gray-700">
-            Select Camera:
-          </label>
-          <select
-            className="w-full p-2 border border-gray-300 rounded-lg"
-            value={selectedCamera}
-            onChange={handleCameraChange}
-            disabled={isDetecting}
-          >
-            {availableCameras.map((camera, index) => (
-              <option key={camera.deviceId} value={camera.deviceId}>
-                {camera.label || `Camera ${index + 1}`}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+        {/* Main Content */}
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-gray-200 p-8">
+            {/* Status Indicators */}
+            <div className="flex justify-center gap-4 mb-8">
+              <div
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-300 ${
+                  connected ? "bg-emerald-50 border border-emerald-200" : "bg-gray-50 border border-gray-200"
+                }`}
+              >
+                <div
+                  className={`w-3 h-3 rounded-full ${connected ? "bg-emerald-500 animate-pulse" : "bg-gray-400"}`}
+                ></div>
+                <span className="text-sm font-medium text-gray-700">
+                  {connected ? "Model Connected" : "Connecting..."}
+                </span>
+              </div>
 
-      <div className="flex justify-center mb-4 space-x-4">
-        {!isDetecting ? (
-          <button
-            onClick={startDetection}
-            className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg flex items-center"
-          >
-            <Camera size={20} className="mr-2" />
-            Start Detection
-          </button>
-        ) : (
-          <button
-            onClick={stopDetection}
-            className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg"
-          >
-            Stop Detection
-          </button>
-        )}
-
-        <button
-          onClick={() => setShowDebug(!showDebug)}
-          className={`${showDebug ? 'bg-blue-700' : 'bg-blue-600 hover:bg-blue-700'} text-white py-2 px-4 rounded-lg flex items-center`}
-          disabled={!debugImage}
-        >
-          <ZoomIn size={20} className="mr-2" />
-          {showDebug ? "Hide Debug" : "Show Debug"}
-        </button>
-      </div>
-
-      {isDetecting && (
-        <div className="w-full bg-white p-4 rounded-lg shadow">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="text-xl font-bold">Detected Chord:</h3>
-            <div className="text-3xl font-bold text-blue-700">
-              {detectedChord || 'Waiting for detection...'}
+              {error && (
+                <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-50 border border-red-200">
+                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  <span className="text-sm font-medium text-red-700">Error</span>
+                </div>
+              )}
             </div>
-          </div>
 
-          <div className="w-full bg-gray-200 rounded-full h-4 mb-4">
-            <div
-              className={`h-4 rounded-full transition-all duration-300 ${
-                confidence > 80 ? 'bg-green-600' : 
-                confidence > 60 ? 'bg-yellow-500' : 
-                'bg-red-500'
-              }`}
-              style={{ width: `${confidence}%` }}
-            />
+            {/* Video Container */}
+            <div className="relative flex justify-center mb-8">
+              <div className="relative">
+                <div className="absolute -inset-4 bg-gradient-to-r from-indigo-100 via-purple-100 to-blue-100 rounded-3xl blur-xl opacity-60"></div>
+                <div className="relative bg-gray-100 rounded-2xl overflow-hidden border-2 border-gray-300 shadow-xl">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    muted
+                    playsInline
+                    className="w-[320px] h-[240px] md:w-[480px] md:h-[360px] object-cover"
+                    style={{
+                      background: "linear-gradient(135deg, #f3f4f6, #e5e7eb)",
+                      transform: "scaleX(-1)",
+                    }}
+                  />
+
+                  {/* Overlay for loading state */}
+                  {loading && (
+                    <div className="absolute inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center">
+                      <div className="flex flex-col items-center">
+                        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+                        <span className="text-indigo-700 font-semibold">Analyzing...</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <canvas ref={canvasRef} style={{ display: "none" }} />
+
+            {/* Chord Detection Result */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+              {/* Raw Prediction Data */}
+              <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
+                <div className="text-sm text-gray-500 mb-3">Raw Prediction Data</div>
+                <div className="bg-white rounded-xl p-4 border border-gray-200 max-h-48 overflow-auto">
+                  <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap break-words">
+                    {result ? JSON.stringify(result[0], null, 2) : "Waiting for prediction..."}
+                  </pre>
+                </div>
+              </div>
+            </div>
+
+            {/* Error Display */}
+            {error && (
+              <div className="mt-6 bg-red-50 border border-red-200 rounded-2xl p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 bg-red-500 rounded-full flex-shrink-0"></div>
+                  <div>
+                    <div className="text-red-700 font-semibold">Error</div>
+                    <div className="text-red-600 text-sm">{error}</div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-          <p className="text-sm text-gray-600 text-center">
-            Confidence: {confidence}%
-            {!detectedChord && ' (Waiting for first detection...)'}
-          </p>
         </div>
-      )}
-
-      {showDebug && debugImage && (
-        <div className="mt-4 w-full">
-          <h3 className="text-lg font-semibold mb-2">Debug View</h3>
-          <div className="bg-white p-2 rounded-lg shadow">
-            <img
-              src={`data:image/png;base64,${debugImage}`}
-              alt="Debug visualization"
-              className="w-full rounded"
-            />
-            <p className="text-xs text-gray-600 mt-1">
-              Green box: detected fretboard area | Yellow lines: strings | Pink lines: frets | Red dots: detected finger positions
-            </p>
-          </div>
-        </div>
-      )}
-
-      <div className="mt-4 w-full">
-        <h3 className="text-lg font-semibold mb-2">Troubleshooting Tips</h3>
-        <ul className="list-disc list-inside text-sm text-gray-700 bg-blue-50 p-4 rounded-lg">
-          <li>Make sure your camera is not being used by another application</li>
-          <li>If using HTTPS, ensure you've granted camera permissions</li>
-          <li>Try selecting different cameras if available</li>
-          <li>Ensure the backend API is running at <code className="bg-gray-200 p-1 rounded">http://localhost:8000</code></li>
-        </ul>
       </div>
+
+      <BottomNav />
     </div>
-  );
+  )
 }
+
+export default YOLOVideoCapture

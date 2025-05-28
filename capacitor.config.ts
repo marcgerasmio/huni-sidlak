@@ -5,6 +5,8 @@ const config: CapacitorConfig = {
   appName: 'huni_sidlak',
   webDir: 'dist',
   server: {
+    hostname: 'localhost',
+    cleartext: false,
     androidScheme: 'https'
   },
   plugins: {
