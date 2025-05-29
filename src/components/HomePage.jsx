@@ -6,14 +6,6 @@ import { useNavigate } from "react-router-dom"
 const HomePage = () => {
   const navigate = useNavigate()
 
-  // Check localStorage on mount
-  useEffect(() => {
-    const started = localStorage.getItem("getStarted")
-    if (started === "true") {
-      navigate("/terms")
-    }
-  }, [navigate])
-
   const handleGetStarted = () => {
     localStorage.setItem("getStarted", "true")
     navigate("/terms")

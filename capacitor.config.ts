@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.hunisidlak.app',
-  appName: 'huni_sidlak',
+  appName: 'Huni - Sidlak',
   webDir: 'dist',
   server: {
     hostname: 'localhost',

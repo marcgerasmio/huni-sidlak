@@ -6,21 +6,12 @@ import { useNavigate } from "react-router-dom"
 const TermsAndConditions = () => {
   const navigate = useNavigate()
 
-  // Checker: redirect if already agreed to terms
-  useEffect(() => {
-    const agreed = localStorage.getItem("agreedToTerms")
-    if (agreed === "true") {
-      navigate("/home")
-    }
-  }, [navigate])
-
   const handleAccept = () => {
     localStorage.setItem("agreedToTerms", "true")
     navigate("/home")
   }
 
   const handleDecline = () => {
-    // Optionally redirect to a different page or show a message
     window.history.back()
   }
 
