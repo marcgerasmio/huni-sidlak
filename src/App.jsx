@@ -6,6 +6,7 @@ import ChordDetect from './components/ChordDetector';
 import HomePage from './components/HomePage';
 import TermsAndConditions from './components/TermsAndConditions';
 import AboutPage from './components/AboutPage';
+import ChordsList from './components/ChordsList';
 function App() {
   return (
     <Router>
@@ -16,6 +17,7 @@ function App() {
         <Route path="/tuner" element={<GuitarTuner />} />
         <Route path="/trial" element={<ChordDetect />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/chords" element={<ChordsList />} />
       </Routes>
     </Router>
   );

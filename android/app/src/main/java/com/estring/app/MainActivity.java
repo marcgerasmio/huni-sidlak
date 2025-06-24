@@ -1,4 +1,4 @@
-package com.hunisidlak.app;
+package com.estring.app;
 
 import com.getcapacitor.BridgeActivity;
 

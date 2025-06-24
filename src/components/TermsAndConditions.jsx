@@ -55,7 +55,7 @@ const TermsAndConditions = () => {
                     />
                   </svg>
                 </div>
-                <h2 className="text-xl font-bold text-gray-800">Welcome to Huni - Sidlak</h2>
+                <h2 className="text-xl font-bold text-gray-800">Welcome to E - String</h2>
               </div>
               <p className="text-gray-700 leading-relaxed  text-justify">
                 Before you begin your musical journey with our app, please take a moment to read and understand the
@@ -173,10 +173,10 @@ const TermsAndConditions = () => {
               <p className="text-gray-700 text-sm text-center">
                 If you do not agree to these terms, please close the app. For questions or concerns, contact us at{" "}
                 <a
-                  href="mailto:support@hunisidlak.com"
+                  href="mailto:support@e-string.com"
                   className="font-semibold text-indigo-600 hover:text-indigo-700 transition-colors underline decoration-indigo-300 hover:decoration-indigo-500"
                 >
-                  support@hunisidlak.com
+                  support@e-string.com
                 </a>
               </p>
             </div>
@@ -219,7 +219,7 @@ const TermsAndConditions = () => {
 
         {/* Footer */}
         <div className="w-full py-6 px-4 backdrop-blur-md bg-white/30 border-t border-gray-200 rounded-t-3xl">
-          <div className="text-center text-gray-600 text-sm">&copy; 2025 Huni - Sidlak. All rights reserved.</div>
+          <div className="text-center text-gray-600 text-sm">&copy; 2025 E - String. All rights reserved.</div>
         </div>
       </div>
     </div>

@@ -19,7 +19,7 @@ const AboutPage = () => {
             <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 bg-clip-text text-transparent mb-4">
               About
             </h1>
-            <p className="text-gray-600 text-lg">Learn more about Huni - Sidlak</p>
+            <p className="text-gray-600 text-lg">Learn more about E - String</p>
           </div>
 
           <div className="w-full max-w-4xl space-y-8">
@@ -43,14 +43,14 @@ const AboutPage = () => {
                   </svg>
                 </div>
                 <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  About Huni - Sidlak
+                  About E - String
                 </h2>
               </div>
 
               <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-100">
                 <p className="text-gray-700 leading-relaxed mb-6  text-justify">
                   <span className="font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                    Huni - Sidlak
+                    E - String
                   </span>{" "}
                   is a cutting-edge mobile-friendly application that revolutionizes how you learn and play guitar. Using
                   advanced technology, our app provides real-time guitar tuning and chord detection through your
@@ -98,7 +98,7 @@ const AboutPage = () => {
                     <ul className="space-y-2">
                       <li className="flex items-center text-gray-700">
                         <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                        Prof. Ryan Aguirre
+                        Mr. Ryan A. Aguirre
                       </li>
                     </ul>
                   </div>
@@ -201,10 +201,10 @@ const AboutPage = () => {
                   We value your feedback and are here to help! For any questions, suggestions, or technical support,
                   please don't hesitate to reach out to our team at{" "}
                   <a
-                    href="mailto:support@hunisidlak.com"
+                    href="mailto:support@e-string.com"
                     className="font-semibold text-emerald-600 hover:text-emerald-700 transition-colors underline decoration-emerald-300 hover:decoration-emerald-500"
                   >
-                    support@hunisidlak.com
+                    support@e-string.com
                   </a>
                 </p>
               </div>

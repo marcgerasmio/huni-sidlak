@@ -35,7 +35,7 @@ const HomePage = () => {
           <div className="absolute -inset-4 bg-gradient-to-r from-indigo-100 via-purple-100 to-blue-100 rounded-full blur-xl opacity-80"></div>
           <div className="relative bg-white/80 backdrop-blur-sm rounded-full p-4 border border-gray-200 shadow-xl">
             <img
-              src="logo1.png"
+              src="logo_new.png"
               alt="App Logo"
               className="h-40 w-40 object-contain mx-auto filter drop-shadow-lg animate-pulse-slow"
             />
@@ -45,7 +45,7 @@ const HomePage = () => {
         {/* App name with gradient text */}
         <div className="mb-20 text-center">
           <h1 className="text-3xl font-light tracking-[0.3em] bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
-            HUNI - SIDLAK
+            E - String
           </h1>
           <p className="mt-4 text-gray-600 max-w-md text-center">
             Master guitar chords and tuning with Pre-Trained Model using Yolov8

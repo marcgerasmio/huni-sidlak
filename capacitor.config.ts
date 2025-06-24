@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.hunisidlak.app',
-  appName: 'Huni - Sidlak',
+  appId: 'com.estring.app',
+  appName: 'E - String',
   webDir: 'dist',
   server: {
     hostname: 'localhost',

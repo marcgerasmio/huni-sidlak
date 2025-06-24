@@ -1,13 +1,16 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { HiHome, HiMusicNote, HiClock, HiCog } from "react-icons/hi";
+import { FaListAlt } from "react-icons/fa";
 import { MdVideoCameraBack } from "react-icons/md";
 
 const navItems = [
   { to: "/home", icon: <HiHome className="w-7 h-7" /> },
   { to: "/tuner", icon: <HiMusicNote className="w-7 h-7" /> },
   { to: "/trial", icon: <MdVideoCameraBack className="w-7 h-7" /> },
+  { to: "/chords", icon: <FaListAlt className="w-7 h-7" /> },
   { to: "/about", icon: <HiCog className="w-7 h-7" /> },
+  
 ];
 
 const BottomNav = () => {

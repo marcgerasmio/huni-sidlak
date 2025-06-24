@@ -17,7 +17,7 @@ const LandingPage = () => {
         {/* Header */}
         <div className="text-center pt-8 pb-4">
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 bg-clip-text text-transparent mb-4">
-            Huni - Sidlak
+            E - String
           </h1>
         </div>
 
